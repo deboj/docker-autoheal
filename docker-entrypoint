@@ -56,6 +56,9 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
             || echo "$DATE Restarting container $CONTAINER_SHORT_ID failed"
         fi
     done
+    if [ "x${AUTOHEAL_PRUNE_CONTAINERS}" = "xtrue" ]; then
+      docker_curl -f -XPOST "http://localhost/containers/prune"
+    fi
   done
 
 else
