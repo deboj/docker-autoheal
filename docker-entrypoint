@@ -41,6 +41,7 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
   while true; do
     sleep ${AUTOHEAL_INTERVAL:=5}
     
+    CONTAINERS_RESTARTED=false
     apiUrl="http://localhost/containers/json?filters=\{\"health\":\[\"unhealthy\"\]${labelFilter}\}"
     stopTimeout=".Labels[\"autoheal.stop.timeout\"] // ${AUTOHEAL_DEFAULT_STOP_TIMEOUT:-10}"
     docker_curl "$apiUrl" | \
@@ -54,9 +55,10 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
           echo "$DATE Container ${CONTAINER_NAME} ($CONTAINER_SHORT_ID) found to be unhealthy - Restarting container now with ${TIMEOUT}s timeout"
           docker_curl -f -XPOST "http://localhost/containers/${CONTAINER_ID}/restart?t=${TIMEOUT}" \
             || echo "$DATE Restarting container $CONTAINER_SHORT_ID failed"
+          CONTAINERS_RESTARTED=true
         fi
     done
-    if [ "x${AUTOHEAL_PRUNE_CONTAINERS}" = "xtrue" ]; then
+    if [ "x${AUTOHEAL_PRUNE_CONTAINERS}" = "xtrue" ] && [ "x${CONTAINERS_RESTARTED}" = "xtrue" ]; then
       docker_curl -f -XPOST "http://localhost/containers/prune"
     fi
   done
